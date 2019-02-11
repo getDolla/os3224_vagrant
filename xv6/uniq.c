@@ -88,6 +88,10 @@ void uniq(int fd, char flag_c, char flag_d, char flag_i) {
 
           if (is_new) {
               print_line(prev, count, flag_c, flag_d);
+              if (sizeof(curr) > sizeof(prev)) {
+                free(prev);
+                prev = malloc(sizeof(char) * strlen(curr));
+              }
               strcpy(prev, curr);
               count = 1;
           }
@@ -113,8 +117,12 @@ void uniq(int fd, char flag_c, char flag_d, char flag_i) {
     print_line(prev, count, flag_c, flag_d);
     print_line(curr, 1, flag_c, flag_d);
   }
+  else {
+    print_line(prev, count + 1, flag_c, flag_d);
+  }
 
   free(prev);
+  printf(1, "---------\n%s\n------\n", curr);
   free(curr);
   free(buffer);
 }
