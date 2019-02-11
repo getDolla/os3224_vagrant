@@ -6,50 +6,34 @@
 #include "types.h"
 #include "user.h"
 
-void free_lines(char **lines, int size) {
-  int i;
-  for(i = 0; i < size; ++i) {
-    free(lines[i]);
+void print_line(char *s, int count, char flag_c, char flag_d) {
+  if (strlen(s) > 0) {
+    if (flag_c) {
+      printf(1, "%d ", count);
+    }
+    if ((!flag_d) || (flag_d && count > 1)) {
+      printf(1, "%s", s);
+    }
   }
-  free(lines);
 }
 
-char** lines_copy(char **lines, int size) {
-  char** new_arr = malloc(sizeof(char *) * size * 2);
-  int i;
-  for(i = 0; i < size; ++i) {
-    new_arr[i] = malloc(strlen(lines[i]) + 1);
-    strcpy(new_arr[i], lines[i]);
-  }
-  free_lines(lines, size);
-  return new_arr;
-}
-
-int* count_copy(int *count, int size) {
-  int *new_count = malloc(sizeof(int) * size * 2);
-  int i;
-  for(i = 0; i < size; ++i) {
-    new_count[i] = count[i];
-  }
-  free(count);
-  return new_count;
-}
-
-int compare_to_prev_line(char **lines, int ind, char *line, int *count, char flag_i) {
-  if (!ind) {
+int compare_to_prev_line(char *prev, char *curr, char flag_i) {
+  if (prev[0] == '\0') {
     return 1;
   }
 
   // printf(1, "line: %s\n", line);
   // printf(1, "line[ind]: %s\n", lines[ind - 1]);
   // printf(1, "%d\n", strcmp(line, lines[ind - 1]));
-  if ((!flag_i) && (!strcmp(line, lines[ind - 1]))) {
-      count[ind - 1] += 1;
+  if (!flag_i) {
+      if (strcmp(prev, curr) != 0) {
+        return 1;
+      }
       return 0;
   }
   else {
-    int size_1 = strlen(line);
-    int size_2 = strlen(lines[ind - 1]);
+    int size_1 = strlen(prev);
+    int size_2 = strlen(curr);
 
     if (size_1 != size_2) {
       return 1;
@@ -57,27 +41,25 @@ int compare_to_prev_line(char **lines, int ind, char *line, int *count, char fla
 
     int i;
     for(i = 0; i < size_1; ++i) {
-      char c1 = (line[i] >= 'A' && line[i] <= 'Z') ? line[i] + 32 : line[i];
-      char c2 = (lines[ind - 1][i] >= 'A' && lines[ind - 1][i] <= 'Z') ? lines[ind - 1][i] + 32 : lines[ind - 1][i];
+      char c1 = (prev[i] >= 'A' && prev[i] <= 'Z') ? prev[i] + 32 : prev[i];
+      char c2 = (curr[i] >= 'A' && curr[i] <= 'Z') ? curr[i] + 32 : curr[i];
       if (c1 != c2) {
         return 1;
       }
     }
-    count[ind - 1] += 1;
     return 0;
   }
   return 1;
 }
 
 void uniq(int fd, char flag_c, char flag_d, char flag_i) {
-  int ind, char_ind = 0;
-  int capacity = 10;
+  int char_ind = 0;
   int buffer_size = 512;
-  char **lines = malloc(sizeof(char *) * capacity);
+  char *prev = malloc(sizeof(char) * buffer_size);
+  prev[0] = '\0';
+  char *curr = malloc(sizeof(char) * buffer_size);
   char *buffer = malloc(sizeof(char) * buffer_size);
-  lines[0] = malloc(sizeof(char) * buffer_size);
-  int *count = malloc(sizeof(int) * capacity);
-  count[0] = 1;
+  int count = 0;
 
   int num_bytes;
   while ((num_bytes = read(fd, buffer, sizeof(buffer))) > 0) {
@@ -86,34 +68,31 @@ void uniq(int fd, char flag_c, char flag_d, char flag_i) {
       if (char_ind >= buffer_size - 1) {
         buffer_size *= 2;
         char *new_buf = malloc(sizeof(char) * buffer_size);
-        strcpy(new_buf, lines[ind]);
-        free(lines[ind]);
-        lines[ind] = new_buf;
+        strcpy(new_buf, curr);
+        free(curr);
+        curr = new_buf;
       }
 
-        if (!strchr("\n\r", buffer[i])) {
-          lines[ind][char_ind] = buffer[i];
+        // if (!strchr("\n\r", buffer[i])) {
+        if (buffer[i] != '\r') {
+          curr[char_ind] = buffer[i];
           // printf(1, "%c", lines[ind][char_ind]);
           char_ind += 1;
-        }
-        else {
+        // }
+        // else {
         if (buffer[i] == '\n') {
-          lines[ind][char_ind] = '\0';
+          curr[char_ind] = '\0';
           // printf(1, "\n```````````\n%s\n```````````\n", lines[ind]);
           char_ind = 0;
-          int is_new = compare_to_prev_line(lines, ind, lines[ind], count, flag_i);
+          int is_new = compare_to_prev_line(prev, curr, flag_i);
 
           if (is_new) {
-            ind += 1;
-
-            if (ind >= capacity) {
-              lines = lines_copy(lines, capacity);
-              count = count_copy(count, capacity);
-              capacity *= 2;
-            }
-
-            lines[ind] = malloc(sizeof(char) * buffer_size);
-            count[ind] = 1;
+              print_line(prev, count, flag_c, flag_d);
+              strcpy(prev, curr);
+              count = 1;
+          }
+          else {
+            count += 1;
           }
         }
       }
@@ -121,31 +100,23 @@ void uniq(int fd, char flag_c, char flag_d, char flag_i) {
   }
   if(num_bytes < 0){
     printf(1, "uniq: read error\n");
-    free_lines(lines, capacity);
+    free(prev);
+    free(curr);
     free(buffer);
-    free(count);
     close(fd);
     exit();
   }
 
-  lines[ind][char_ind] = '\0';
-  if (!compare_to_prev_line(lines, ind, lines[ind], count, flag_i)) {
-    free(lines[ind]);
-    ind -= 1;
+  curr[char_ind] = '\0';
+  int is_new = compare_to_prev_line(prev, curr, flag_i);
+  if (is_new) {
+    print_line(prev, count, flag_c, flag_d);
+    print_line(curr, 1, flag_c, flag_d);
   }
 
-  int i;
-  for(i = 0; i <= ind; ++i) {
-    if (flag_c) {
-      printf(1, "%d ", count[i]);
-    }
-    if ((!flag_d) || (flag_d && count[i] > 1)) {
-      printf(1, "%s\n", lines[i]);
-    }
-  }
-  free_lines(lines, ind + 1);
+  free(prev);
+  free(curr);
   free(buffer);
-  free(count);
 }
 
 int main(int argc, char *argv[]) {
