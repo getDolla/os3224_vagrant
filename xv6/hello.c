@@ -1,3 +1,8 @@
+/*
+	Yikai Wang
+	CS3224 2019 Spring
+  hello.c
+*/
 #include "types.h"
 #include "user.h"
 
