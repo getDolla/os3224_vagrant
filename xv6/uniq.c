@@ -90,7 +90,7 @@ void uniq(int fd, char flag_c, char flag_d, char flag_i) {
               print_line(prev, count, flag_c, flag_d);
               if (sizeof(curr) > sizeof(prev)) {
                 free(prev);
-                prev = malloc(sizeof(char) * strlen(curr));
+                prev = malloc(sizeof(char) * strlen(curr) + 1);
               }
               strcpy(prev, curr);
               count = 1;
