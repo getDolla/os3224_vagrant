@@ -123,6 +123,7 @@ void uniq(int fd, char flag_c, char flag_d, char flag_i) {
     printf(1, "uniq: read error\n");
     free_lines(lines, capacity);
     free(buffer);
+    free(count);
     close(fd);
     exit();
   }
