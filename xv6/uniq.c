@@ -6,13 +6,29 @@
 #include "types.h"
 #include "user.h"
 
+int count_length(int count) {
+  if (count < 10) {
+    return 1;
+  }
+  return 1 + count_length(count / 10);
+}
+
+void print_count(int count, int length) {
+  int size = count_length(count);
+  int i;
+  for(i = (length - size); i > 0; --i) {
+    printf(1, " ");
+  }
+  printf(1, "%d ", count);
+}
+
 void print_line(char *s, int count, char flag_c, char flag_d) {
   if (strlen(s) > 0) {
     if (flag_c) {
-      printf(1,"   %d ", count);
+      print_count(count, 4);
     }
     if (flag_d && count > 1) {
-      printf(1,"   %s", s);
+      printf(1,"%s", s);
     }
     else if (!flag_d) {
       printf(1, "%s", s);
