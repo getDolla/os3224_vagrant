@@ -1,6 +1,18 @@
+/*
+	Yikai Wang
+	CS3224 2019 Spring
+  printf.c
+*/
 #include "types.h"
 #include "stat.h"
 #include "user.h"
+
+int count_length(int count) {
+  if (count < 10) {
+    return 1;
+  }
+  return 1 + count_length(count / 10);
+}
 
 static void
 putc(int fd, char c)
@@ -74,7 +86,19 @@ printf(int fd, char *fmt, ...)
         ap++;
       } else if(c == '%'){
         putc(fd, c);
-      } else {
+      }
+      else if (c >= '1' && c <= '9' && fmt[i + 1] && (fmt[i + 1] & 0xff) == 'd') {
+        int length = c - '0';
+        int size = count_length(*ap);
+        int j;
+        for(j = (length - size); j > 0; --j) {
+          printf(fd, " ");
+        }
+        printint(fd, *ap, 10, 1);
+        ap++;
+        i++;
+      }
+      else {
         // Unknown % sequence.  Print it to draw attention.
         putc(fd, '%');
         putc(fd, c);
